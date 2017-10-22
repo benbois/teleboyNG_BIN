@@ -43,15 +43,20 @@ settings = xbmcaddon.Addon( id=PLUGINID)
 cookies = cookielib.LWPCookieJar( COOKIE_FILE)
 
 def updateSessionCookie( ck):
+    log( "2 -updateSessionCookie function ###" )
     global session_cookie
     for c in ck:
+        log( c.name + ": " + c.value )
         if c.name == "cinergy_s":
             session_cookie = c.value
+            log( "return TRUE" )
             return True
     session_cookie = ''
+    log( "return FALSE" )
     return False
 
 def updateUserID( content):
+    log( "3 - updateUserID function ###" )
     global user_id
     lines = content.split( '\n')
     for line in lines:
@@ -60,11 +65,14 @@ def updateUserID( content):
             if match:
                 user_id = match.group(1)
                 log( "user id: " + user_id)
+                log( "return TRUE" )
                 return True
     user_id = ''
+    log( "return FALSE" )
     return False
 
 def ensure_login():
+    log ("1 - ensure_login function ###" )
     global cookies
     opener = urllib2.build_opener( urllib2.HTTPCookieProcessor(cookies))
     urllib2.install_opener( opener)
@@ -85,13 +93,18 @@ def ensure_login():
     args = { "login": settings.getSetting( id="login"),
              "password": settings.getSetting( id="password"),
              "keep_login": "1" }
-    hdrs = { "Referer": 'https://www.teleboy.ch/login' }
+    hdrs = { "Referer": 'https://www.teleboy.ch/login?target=https%3A//www.teleboy.ch/' }
+#             "User-Agent": 'Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:12.0) Gecko/20100101 Firefox/12.0' }
     reply = fetchHttp( url, args, hdrs, post=True)
 
-    if updateSessionCookie( cookies) and updateUserID( reply):
+#    if updateSessionCookie( cookies) and updateUserID( reply):
+    if updateSessionCookie( cookies):
         cookies.save( ignore_discard=True)
-        log( "login ok")
-        return True
+        url = TB_URL + "/live"
+        reply = fetchHttp( url )
+        if updateUserID( reply):
+            log( "login ok")
+            return True
 
     log( "login failure")
     log( reply)
